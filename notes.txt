@@ -1,0 +1,97 @@
+1. utils.py
+Purpose:
+Small helper tools used across the project.
+Currently it only has one function — ensure_datetime_index().
+What it does:
+Cleans and organizes time columns (like “created_utc”) by:
+Converting them into proper date/time objects (so pandas understands them).
+Dropping invalid ones.
+Sorting chronologically.
+Making that column the DataFrame index.
+Why it matters:
+All your other files depend on having properly formatted timestamps.
+
+
+
+
+📈 2. data/price.py
+Purpose:
+Gets historical stock price data from Yahoo Finance.
+What it does:
+Uses the yfinance library to download prices for a given ticker (like “TSLA”).
+Cleans the columns (makes lowercase names).
+Calculates daily returns (how much the stock moved each day).
+Returns only what you need: adj close and ret (return).
+Why it matters:
+This is your “ground truth” — the real stock market data you’ll compare sentiment against.
+
+RETURNS A CLEANED DATAFRAME OF DAILY RETURNS FOR A CERTAIN TICKER. 
+THIS WILL BE USED TO COMPARE THE SENTIMENT DATA AGAINST
+
+
+
+
+💬 3. data/altdata.py
+Purpose:
+Loads your “alternative data” — in this case, Reddit or Twitter posts.
+What it does:
+Reads the CSV file you made (reddit_tesla.csv).
+Checks that it has the right columns (created_utc and text).
+Uses ensure_datetime_index() to turn timestamps into real datetimes.
+Makes sure the text column is clean (no missing values).
+Why it matters:
+This gives you a clean table of posts ready for sentiment scoring.
+
+READS THE REDDIT POSTS CSV FILE AND RETURNS A CLEANED DATAFRAME OF POSTS READY 
+TO BE ANALYSED BY SENTIMENT.PY 
+
+
+
+
+❤️ 4. features/sentiment.py
+Purpose:
+Analyzes the mood (sentiment) of each post using VADER.
+What it does:
+score_text() → gives each post a score between -1 (negative) and +1 (positive).
+daily_sentiment() → groups posts by day, then calculates:
+mean sentiment (average daily mood)
+median sentiment
+n_posts (number of posts that day)
+Why it matters:
+This converts messy human language into numeric features that can be tested against stock prices.
+
+ANALYSES THE SENTIMENT OF EACH POST IN THE DATAFRAME AND ASSIGNS IT A SCORE FROM 1 (+VE) TO -1 (-VE)
+CONVERTS THE LANGUAGE INTO A NUMERICAL SCORE TO BE COMPARED AGAINST STOCK STATISTICS (DAILY RETURN ETC.)
+
+
+
+
+⚙️ 5. backtest/strategy.py
+Purpose:
+Simulates a simple trading strategy based on the sentiment signal.
+What it does:
+Converts daily sentiment into positions:
++1 → buy, -1 → short, 0 → stay out.
+Shifts returns by one day (so you only act on yesterday’s data — no cheating).
+Applies trading costs (a few basis points per trade).
+Calculates the running total of profit/loss over time (equity curve).
+Why it matters:
+This tests whether sentiment data gives a trading edge — i.e., if “buy when people are happy” beats random chance.
+
+SIMPLE TRADING STRATEGY TO LONG OR SHORT POSITIONS BASED ON THE SENTIMENT SCORE 
+USES BASIS POINTS TO ACCOUNT FOR REAL LIFE SLIPPAGE AND EXTERNAL FEES 
+TESTS IF THE SENTIMENT DATA HELPS WITH TRADING 
+
+
+📊 6. evaluation/metrics.py
+Purpose:
+Calculates key performance statistics for your strategy.
+What it does:
+Sharpe ratio: how much return you get per unit of risk.
+Max drawdown: biggest drop from a previous peak (shows worst-case loss).
+CAGR: compound annual growth rate (yearly growth if you reinvested profits).
+Why it matters:
+These metrics let you compare your sentiment strategy to a simple “buy & hold.”
+
+python -c "import sys; sys.path.append('src'); from altalpha.data.price import fetch_daily_prices as f; print(f('TSLA','2024-12-20','2025-01-05').head())"
+python -c "import sys; sys.path.append('src'); from altalpha.data.altdata import load_posts_csv; from altalpha.features.sentiment import daily_sentiment; import pandas as pd; p=load_posts_csv('data/raw/reddit_tesla.csv'); print(daily_sentiment(p).head())"
